@@ -41,6 +41,14 @@ class TestMyModule(unittest.TestCase):
         expected_result = [53, 32, 9, 1155, 14]
         self.assertEqual(result, expected_result)
 
+        tkn_twt = ['this', 'slkdfhgueywqiofjp', '!', 'test', '?']
+        max_len = 3000000
+
+        result = asg3.replace_token_with_index(tkn_twt,max_len)
+
+        expected_result = [53, 1193514, 9, 1155, 14]
+        self.assertEqual(result, expected_result)
+
     def test_pad_sequence(self):
 
         arr = [53, 32, 9, 1155, 14]
