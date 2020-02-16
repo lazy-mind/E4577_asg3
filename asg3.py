@@ -5,9 +5,21 @@ from nltk.tokenize import TweetTokenizer
 
 def clean_text(raw_text):
     """Remove url, tokens"""
+    raw_text = raw_text.replace('RT ', '')
+    text_list = raw_text.split()
+    useless_tokens = ["@", "#"]
+    text_list = [x for x in text_list if x[0] not in useless_tokens]
+    text_list = [x for x in text_list if x.lower().find('http://') == -1]
+    text_list = [x for x in text_list if x.lower().find('https://') == -1]
+    text = " ".join(text_list)
+    # remove other tokens
+    return text
 
 def tokenize_text(tweet_str):
     """convert string to chunks of text"""
+    tokenizer = TweetTokenizer(strip_handles=True, reduce_len=True)
+    return tokenizer.tokenize(tweet_str)
+    # Source: https://www.nltk.org/api/nltk.tokenize.html
 
 def replace_token_with_index(tokenized_tweet, max_length_dictionary, file_path="./Glove_dict.txt"):
     """convert each text to dictionary index"""
@@ -32,6 +44,11 @@ def replace_token_with_index(tokenized_tweet, max_length_dictionary, file_path="
 
 def pad_sequence(arr, max_length_tweet):
     """add 0 padding to the trail until max_length_tweet"""
+    """add 0 padding to the trail until max_length_tweet"""
+    # padding a list of indices with 0 until a maximum length (max_length_tweet)
+    trailing_zeros = [0]*(max_length_tweet-len(arr))
+    arr.extend(trailing_zeros)
+    return arr
 
 def get_glove_dictionary(file_path="./glove.twitter.27B.25d.txt"):
     """output a glove dictionary"""
