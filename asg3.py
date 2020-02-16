@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """NLP Preprocessing Library"""
-import nltk.tokenize
+import nltk
+
 def clean_text(raw_text):
     """Remove url, tokens"""
     raw_text = raw_text.replace('RT ', '')
