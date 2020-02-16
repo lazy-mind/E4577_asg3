@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """NLP Preprocessing Library"""
-
-from nltk.tokenize import TweetTokenizer
+import nltk
 
 def clean_text(raw_text):
     """Remove url, tokens"""
@@ -17,7 +16,7 @@ def clean_text(raw_text):
 
 def tokenize_text(tweet_str):
     """convert string to chunks of text"""
-    tokenizer = TweetTokenizer(strip_handles=True, reduce_len=True)
+    tokenizer = nltk.tokenize.TweetTokenizer(strip_handles=True, reduce_len=True)
     return tokenizer.tokenize(tweet_str)
     # Source: https://www.nltk.org/api/nltk.tokenize.html
 

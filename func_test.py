@@ -14,6 +14,14 @@ class TestMyModule(unittest.TestCase):
         expected_result = "this is! test?"
         self.assertEqual(result, expected_result)
 
+    def test_clean_text_normal_1(self):
+        rawtext = "RT @Apex_sH: My niece has her bird trained to attack anyone she screams at ???????????? https://t.co/ea0JoWMNrT"
+        
+        result = asg3.clean_text(rawtext)
+
+        expected_result = "My niece has her bird trained to attack anyone she screams at ????????????"
+        self.assertEqual(result, expected_result)
+
     def test_tokenize_text(self):
 
         twt_str = "this is! test?"
@@ -36,11 +44,11 @@ class TestMyModule(unittest.TestCase):
     def test_pad_sequence(self):
 
         arr = [53, 32, 9, 1155, 14]
-        max_len = 5
+        max_len = 10
 
         result = asg3.pad_sequence(arr, max_len)
 
-        expected_result = [53, 32, 9, 1155, 14]
+        expected_result = [53, 32, 9, 1155, 14, 0, 0, 0, 0, 0]
         self.assertEqual(result, expected_result)
 
 """    def test_preprocess(self):
