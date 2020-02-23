@@ -1,6 +1,15 @@
 #!/usr/bin/env python
 """NLP Preprocessing Library"""
 import nltk
+import zipfile
+import os
+import pandas as pd
+import json
+
+file_is_read = False
+mode = ""
+corpus = []
+
 
 def clean_text(raw_text):
     """Remove url, tokens"""
@@ -20,25 +29,89 @@ def tokenize_text(tweet_str):
     return tokenizer.tokenize(tweet_str)
     # Source: https://www.nltk.org/api/nltk.tokenize.html
 
-def replace_token_with_index(tokenized_tweet, max_length_dictionary, file_path="./Glove_dict.txt"):
+
+def process_dictionary(_list):
+    """remove unknown or unk tag, insert pad and unknown tag"""
+    try:
+        del _list[_list.index('<unknown>')]
+    except ValueError:
+        pass
+
+    try:
+        del _list[_list.index('<unk>')]
+    except ValueError:
+        pass
+    _list.insert(0, '<pad>')
+    _list.insert(0, '<unknown>')
+
+    return _list
+
+
+def replace_token_with_index(tokenized_tweet, max_length_dictionary, file_path="dict.zip/dict/Glove_dict.txt"):
     """convert each text to dictionary index"""
 
     # should be replacing each token in a list of tokens by their corresponding index
     # Source: https://github.com/stanfordnlp/GloVe
     # Source: https://towardsdatascience.com/word-embeddings-for-sentiment-analysis-65f42ea5d26e
 
-    file = open(file_path, "r")
+    global file_is_read
+    global mode
+    global corpus
+
+    if file_is_read:
+        if mode == "zip":
+            for idx, word in enumerate(tokenized_tweet):
+                if word not in corpus:
+                    tokenized_tweet[idx] = "<unknown>"
+        else:
+            for idx, word in enumerate(tokenized_tweet):
+                if word not in corpus:
+                    tokenized_tweet[idx] = "<unk>"
+        return [corpus.index(x) for x in tokenized_tweet]
+
     corpus = [""]*max_length_dictionary
-    idx = 0
-    for word in file:
-        corpus[idx] = word.rstrip()
-        idx += 1
 
-    for idx, word in enumerate(tokenized_tweet):
-        if word not in corpus:
-            tokenized_tweet[idx] = "<unk>"
+    # asg3.replace_token_with_index(["this", "is", "tweet"], 
+    # 10000000, "Archive.zip/dict/Glove_dict.txt")
+    if ".zip/" in file_path:
+        archive_path = os.path.abspath(file_path)
+        split = archive_path.split(".zip/")
+        archive_path = split[0] + ".zip"
+        path_inside = split[1]
+        archive = zipfile.ZipFile(archive_path, "r")
+        embeddings = archive.read(path_inside).decode("utf8").split("\n")
 
-    return [corpus.index(x) for x in tokenized_tweet]
+        embeddings = process_dictionary(embeddings)
+
+        idx = 0
+        for word in embeddings:
+            corpus[idx] = word
+            idx += 1
+
+        for idx, word in enumerate(tokenized_tweet):
+            if word not in corpus:
+                tokenized_tweet[idx] = "<unknown>"
+
+        file_is_read = True
+        mode = "zip"
+
+        return [corpus.index(x) for x in tokenized_tweet]
+    else:
+        file = open(file_path, "r")
+        idx = 0
+        for word in file:
+            corpus[idx] = word.rstrip()
+            idx += 1
+
+        for idx, word in enumerate(tokenized_tweet):
+            if word not in corpus:
+                tokenized_tweet[idx] = "<unk>"
+
+        file_is_read = True
+        mode = "txt"
+
+        return [corpus.index(x) for x in tokenized_tweet]
+
 
 
 def pad_sequence(arr, max_length_tweet):
@@ -48,26 +121,54 @@ def pad_sequence(arr, max_length_tweet):
     arr.extend(trailing_zeros)
     return arr
 
-# def get_glove_dictionary(file_path="./glove.twitter.27B.25d.txt"):
-#     """output a glove dictionary"""
-#     file = open(file_path, "r")
-#     dictionary = {}
-#     keys = []
-#     for word_vector in file:
-#         dictionary[word_vector.split()[0]] = word_vector.split()[1:]
-#         keys.append(word_vector.split()[0])
-#     file.close()
-
-#     file = open("./Glove_dict.txt", "a")
-#     for word in keys:
-#         file.write(word + '\n')
-#     file.close()
 
 
-# def preprocess(input_text, max_length_tweet=100000, max_length_dictionary=1193515):
-#     """a general method to call, convert string to vectorized representation"""
-#     input_text = clean_text(input_text)
-#     text_list = tokenize_text(input_text)
-#     index_list = replace_token_with_index(text_list, max_length_dictionary)
-#     index_list = pad_sequence(index_list, max_length_tweet)
-#     return index_list
+def get_glove_dictionary(file_path="./glove.twitter.27B.25d.txt"):
+    """output a glove dictionary"""
+    file = open(file_path, "r")
+    dictionary = {}
+    keys = []
+    for word_vector in file:
+        dictionary[word_vector.split()[0]] = word_vector.split()[1:]
+        keys.append(word_vector.split()[0])
+    file.close()
+
+    file = open("./Glove_dict.txt", "a")
+    for word in keys:
+        file.write(word + '\n')
+    file.close()
+
+
+def preprocess_text(input_text, max_length_tweet=100000, max_length_dictionary=1193516):
+    """a general method to call, convert string to vectorized representation"""
+    input_text = clean_text(input_text)
+    text_list = tokenize_text(input_text)
+    index_list = replace_token_with_index(text_list, max_length_dictionary)
+    index_list = pad_sequence(index_list, max_length_tweet)
+    return index_list
+
+def preprocss_file(file_path):
+    df = pd.read_csv(file_path, encoding='windows-1252')
+
+    result = []
+    for idx, row in df.iterrows():
+        print(idx)
+        _dict = {}
+        _dict["features"] = preprocess_text(row["Tweet"], max_length_tweet = 140)
+        _dict["sentiment"] = row["Sentiment"]
+        result.append(_dict)
+
+
+    output_file_name = file_path.split(".")[0] + '.json'
+    with open(output_file_name, 'w', encoding='utf-8') as f:
+        for entry in result:
+            json.dump(entry, f)
+            f.write('\n')
+    f.close()
+
+def generate_json():
+    preprocss_file("eval.csv")
+    preprocss_file("train.csv")
+    preprocss_file("dev.csv")
+
+# generate_json()
